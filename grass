@@ -1,0 +1,16 @@
+#!/bin/sh
+SCRIPT=./grass.awk
+
+if [ x$1 = x-v ]; then
+	awk -f $SCRIPT -v verbose=1 -v srcfile=$2
+else
+	if [ x$1 = x-- ]; then
+		TMP=./grass.tmp.g
+		cat > $TMP
+		awk -f $SCRIPT -v srcfile=$TMP
+		rm -f $TMP
+	else
+		awk -f $SCRIPT -v srcfile=$1
+	fi
+fi
+
