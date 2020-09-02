@@ -1,12 +1,18 @@
 #!/usr/bin/env gawk -f
 #
+# folked from: http://blog.livedoor.jp/naoya_t/archives/51026653.html
+# folked by: TpaeFawzen
+# license: not provided
+#
+### <untouched>
 # grass.awk - Grass on AWK, ver 0.06
 #
 # usage: awk -f grass.awk -v srcfile=foobar
+### </untouched>
 #
 BEGIN {
-#   RS = "[vｖ]" ← うまくいかないね
-    RS = "v"
+    # RS=/(v|ｖ)/ # ONLY FOR GAWK
+    RS="v";
 
     if (verbose ~ /^$/) verbose = 0
 
@@ -31,12 +37,12 @@ BEGIN {
         gsub(/[^Ww]/,"")
 
         # 文をパース
-        if (verbose) printf("%s => %s\n", $0, pp($0));
+        if (verbose) printf("%s => %s\n", $0, pp($0))>"/dev/stderr";
 
         ## Function:
         if (/^w/) {
             N = split(read($0), ar, " ") # odd
-            if (verbose) print "function."
+            if (verbose) print "function.">"/dev/stderr";
 
             stock_id = stock(_stack)
             js = "/" ar[1] "[" _stock_id "]"
@@ -52,13 +58,13 @@ BEGIN {
         if (/^W/) {
             N = split(read($0), ar, " ") # even
 
-            if (verbose) printf "applications."
+            if (verbose) printf "applications.">"/dev/stderr";
             for (i=1; i<=N; i+=2) {
                 proc = st( ar[i] )
                 arg = st( ar[i+1] )
-                if (verbose) printf("%d) apply (%d %d) c-a-d. (%s %s) ...\n", i, ar[i], ar[i+1], proc, arg);
+                if (verbose) printf("%d) apply (%d %d) c-a-d. (%s %s) ...\n", i, ar[i], ar[i+1], proc, arg)>"/dev/stderr";
                 val = apply(proc, arg)
-                if (verbose) printf(" => %s\n", val);
+                if (verbose) printf(" => %s\n", val)>"/dev/stderr";
                 push(val)
             }
 
@@ -79,14 +85,14 @@ BEGIN {
 #
 function push(x)
 {
-    if (verbose) print "push " x;
+    if (verbose) print "push " x >"/dev/stderr";
 
     _stack = x ":" _stack
 }
 
 function pop(    var,ix)
 {
-    if (verbose) print "pop ";
+    if (verbose) print "pop " >"/dev/stderr";
 
     ix = index(_stack,":")
     if (ix > 0) {
@@ -98,17 +104,17 @@ function pop(    var,ix)
         var = ""
     }
 
-    if (verbose) printf("  => %s\n", var);
+    if (verbose) printf("  => %s\n", var)>"/dev/stderr";
     return var
 }
 
 function dump(  N,a,i)
 {
     if (verbose) {
-        print "{"
+        print "{">"/dev/stderr";
         N = split(_stack, a, /:/)
-        for (i=1; i<N; i++) print "  - " a[i];
-        print "}"
+        for (i=1; i<N; i++) print "  - " a[i]>"/dev/stderr";
+        print "}">"/dev/stderr";
     }
 }
 
@@ -166,28 +172,30 @@ function apply_primitive(fn,arg,  name,line)
 {
     name = substr(fn,3)
     if (name ~ /out/) {
-        if (verbose) printf "OUT:"
+        if (verbose) printf "OUT:">"/dev/stderr";
         printf("%c", arg)
-        if (verbose) printf "\n"
+        if (verbose) printf "\n">"/dev/stderr";
         return arg
     } else if (name ~ /in/) {
-        getline line
+        RS=""; # temporary;
+        getline line<"/dev/stdin" # HOW ABOUT THIS?
+        RS="v"; # back;
         return ord(substr(line,1,1))
     } else if (name ~ /succ/) {
-        if (verbose) printf("succ %s(%c) => %s(%c)\n", arg,arg, (arg+1)%256,(arg+1)%256)
+        if (verbose) printf("succ %s(%c) => %s(%c)\n", arg,arg, (arg+1)%256,(arg+1)%256)>"/dev/stderr";
         return (arg + 1) % 256 ###
     }
 }
 
 function apply_cmp(fn,arg)
 {
-    if (verbose) printf("APPLY COMPARISON/%d with arg:%s\n", fn, arg)
+    if (verbose) printf("APPLY COMPARISON/%d with arg:%s\n", fn, arg)>"/dev/stderr";
     return (0+fn == 0+arg) ? true_func : false_func
 }
 
 function apply(fn,arg, ar,as,N,i,  arity,env,new_env,body, proc,val,stack_bup, tmp)
 {
-    if (verbose) printf("(apply %s %s...)\n", fn, substr(arg,1,10))
+    if (verbose) printf("(apply %s %s...)\n", fn, substr(arg,1,10))>"/dev/stderr";
 
     if (is_primitive(fn)) return apply_primitive(fn,arg)
     if (fn ~ /^[0-9]/) return apply_cmp(fn,arg)
@@ -202,25 +210,25 @@ function apply(fn,arg, ar,as,N,i,  arity,env,new_env,body, proc,val,stack_bup, t
         stock_id = stock(new_env)
         val = sprintf("/%d[%d]%s", arity-1, stock_id, body)
 
-        if (verbose) printf("＜部分適用＞ %s => %s\n", fn, val)
+        if (verbose) printf("＜部分適用＞ %s => %s\n", fn, val)>"/dev/stderr";
         return val;
     }
 
-    if (verbose) printf("= arity:%d, env:%s, body:%s\n", arity, env, body);
+    if (verbose) printf("= arity:%d, env:%s, body:%s\n", arity, env, body)>"/dev/stderr";
     stack_bup = _stack
     _stack = new_env
-    if (verbose) print "closure:"
+    if (verbose) print "closure:">"/dev/stderr";
     dump()
 
-    if (verbose) print "APPLY: executing body: "
+    if (verbose) print "APPLY: executing body: ">"/dev/stderr";
 
     N = split(body,as,/,/);
-    if (verbose) printf("body\"%s\" => %d exprs\n", body,N-1)
+    if (verbose) printf("body\"%s\" => %d exprs\n", body,N-1)>"/dev/stderr";
     for (i=1; i<N; i++) {
         split(as[i], ar, /\./)
 
         if (ar[1] == 0) {
-            if (verbose) printf("%d) boolean.\n", i)
+            if (verbose) printf("%d) boolean.\n", i)>"/dev/stderr";
             val = st( ar[2] )
             push(val)
             dump()
@@ -229,14 +237,14 @@ function apply(fn,arg, ar,as,N,i,  arity,env,new_env,body, proc,val,stack_bup, t
             arg = st( ar[2] )
 
             dump()
-            if (verbose) printf("%d) apply (%d %d) c-a-d. (%s %s) ...\n", i, ar[1], ar[2], proc, arg);
+            if (verbose) printf("%d) apply (%d %d) c-a-d. (%s %s) ...\n", i, ar[1], ar[2], proc, arg)>"/dev/stderr";
             val = apply(proc, arg)
-            if (verbose) printf(" => %s\n", val);
+            if (verbose) printf(" => %s\n", val)>"/dev/stderr";
 
             push(val)
         }
     }
-    if (verbose) print "body end."
+    if (verbose) print "body end.">"/dev/stderr";
     dump()
 
     val = pop()
